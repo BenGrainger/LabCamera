@@ -66,7 +66,7 @@ while(True): # forever loop - planning to always running
         
         video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
         json_server_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}_Meta.JSON'.format(datestr)
-        command = 'ffmpeg -i {} -b x265 {}'.format(video_ouput_to_server, out)
+        command = 'ffmpeg -i {} -b x265 {}'.format(video_ouput_to_server, json_server_file_path)
         result = subprocess.run(command)
         pathlib.Path(json_server_file_path).write_text(json.dumps(metaData))
         
