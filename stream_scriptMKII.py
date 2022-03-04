@@ -1,10 +1,16 @@
-import numpy as np
+import vimba
+from vimba import *
+import sys
+from typing import Optional
 import cv2
 import time
 import datetime
 import json
 import pathlib
 import subprocess
+from time import sleep
+import numpy as np
+import threading
 
 def get_camera(camera_id: Optional[str]) -> Camera:
     with Vimba.get_instance() as vimba:
@@ -73,7 +79,7 @@ class Handler:
             img = frame.as_opencv_image()
             result.write(img)
             hr = get_hour()
-            if 8 > hr > 23:
+            if 8 < hr < 23:
                 self.shutdown_event.set()
 
         cam.queue_frame(frame)
@@ -95,7 +101,7 @@ while(True): # forever loop - planning to always running
     hr = get_hour()
     
     if 8 < hr < 23: # between the hours of 8 and 23
-        with Vimba.get_instance() as vimba:
+        with Vimba.get_instance():
             cams = vimba.get_all_cameras()
 
             print('Cameras found: {}'.format(len(cams)))
