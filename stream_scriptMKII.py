@@ -27,23 +27,8 @@ def get_camera(camera_id: Optional[str]) -> Camera:
 
 def setup_camera(cam: Camera):
     with cam:
-        # Enable auto exposure time setting if camera supports it
-        try:
-            cam.ExposureAuto.set('Continuous')
-        except (AttributeError, VimbaFeatureError):
-            pass
-        # Enable white balancing if camera supports it
-        try:
-            cam.BalanceWhiteAuto.set('Continuous')
-        except (AttributeError, VimbaFeatureError):
-            pass
-        # Try to adjust GeV packet size. This Feature is only available for GigE - Cameras.
-        try:
-            cam.GVSPAdjustPacketSize.run()
-            while not cam.GVSPAdjustPacketSize.is_done():
-                pass
-        except (AttributeError, VimbaFeatureError):
-            pass
+        settings_file = r'C:\Users\BMLab21\Desktop\camera\third.xml'
+        cam.load_settings(settings_file, PersistType.All)
         # Query available, open_cv compatible pixel formats
         # prefer color formats over monochrome formats
         cv_fmts = intersect_pixel_formats(cam.get_pixel_formats(), OPENCV_PIXEL_FORMATS)
@@ -69,7 +54,7 @@ class Handler:
         key = cv2.waitKey(1)
         if key == ENTER_KEY_CODE:
             self.shutdown_event.set()
-            return
+            return 
 
         elif frame.get_status() == FrameStatus.Complete:
             #print('{} acquired {}'.format(cam, frame), flush=True)
@@ -79,8 +64,10 @@ class Handler:
             img = frame.as_opencv_image()
             result.write(img)
             hr = get_hour()
-            if 8 < hr < 23:
+            
+            if 8 > hr > 23:
                 self.shutdown_event.set()
+                return 
 
         cam.queue_frame(frame)
 
@@ -101,7 +88,7 @@ while(True): # forever loop - planning to always running
     hr = get_hour()
     
     if 8 < hr < 23: # between the hours of 8 and 23
-        with Vimba.get_instance():
+        with Vimba.get_instance() as vimba:
             cams = vimba.get_all_cameras()
 
             print('Cameras found: {}'.format(len(cams)))
@@ -111,14 +98,18 @@ while(True): # forever loop - planning to always running
 
             with get_camera(cameraID) as cam:
 
-                cam.AcquisitionFrameRateAbs = 10
-                fps=cam.AcquisitionFrameRateAbs
                 single_frame = cam.get_frame().as_numpy_ndarray()
                 size = (single_frame.shape[0], single_frame.shape[1])
-                video_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
-                result = cv2.VideoWriter(video_file_path, cv2.VideoWriter_fourcc(*'MJPG'), fps, size[::-1])
+                video_file_path = r'C:\Users\BMLab21\Documents\CrabStreams2\{}.avi'.format(datestr)
                 # Start Streaming, wait for five seconds, stop streaming
+                
                 setup_camera(cam)
+                
+                cam.AcquisitionFrameRateAbs = 25
+                fps=cam.AcquisitionFrameRateAbs
+                
+                result = cv2.VideoWriter(video_file_path, cv2.VideoWriter_fourcc(*'MJPG'), fps, size[::-1])
+                
                 handler = Handler()
 
                 try:
@@ -131,3 +122,18 @@ while(True): # forever loop - planning to always running
 
         result.release()
         cv2.destroyAllWindows()
+        
+        end = str(datetime.datetime.now().time())
+        
+        # save accompanying Json
+        
+        json_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}_Meta.JSON'.format(datestr)
+        metaData = {'date': datestr, 'start': start, 'end': end}
+        pathlib.Path(json_file_path).write_text(json.dumps(metaData))
+        
+        # compress and output to server
+        
+        video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
+        json_server_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}_Meta.JSON'.format(datestr)
+        command = 'ffmpeg -i {} -b x265 {}'.format(video_ouput_to_server, json_server_file_path)
+        result = subprocess.run(command)
