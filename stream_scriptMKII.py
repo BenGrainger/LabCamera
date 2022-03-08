@@ -27,7 +27,7 @@ def get_camera(camera_id: Optional[str]) -> Camera:
 
 def setup_camera(cam: Camera):
     with cam:
-        settings_file = r'C:\Users\BMLab21\Desktop\camera\third.xml'
+        settings_file = r'C:\Users\BMLab21\Desktop\camera\fourth.xml'
         cam.load_settings(settings_file, PersistType.All)
         # Query available, open_cv compatible pixel formats
         # prefer color formats over monochrome formats
@@ -50,24 +50,27 @@ class Handler:
 
     def __call__(self, cam: Camera, frame: Frame):
         ENTER_KEY_CODE = 13
-
+    
         key = cv2.waitKey(1)
+        time = get_hour()
+        
         if key == ENTER_KEY_CODE:
             self.shutdown_event.set()
             return 
+        
 
         elif frame.get_status() == FrameStatus.Complete:
-            #print('{} acquired {}'.format(cam, frame), flush=True)
-            msg = 'Stream from \'{}\'. Press <Enter> to stop stream.'
-            cv2.imshow(msg.format(cam.get_name()), frame.as_opencv_image())
-            self.frame_number +=1
-            img = frame.as_opencv_image()
-            result.write(img)
-            hr = get_hour()
-            
-            if 8 > hr > 23:
+            time = get_hour()
+            if stream_begin < time < stream_end:
+                msg = 'Stream from \'{}\'. Press <Enter> to stop stream.'
+                cv2.imshow(msg.format(cam.get_name()), frame.as_opencv_image())
+                self.frame_number +=1
+                img = frame.as_opencv_image()
+                result.write(img)
+            else:
+                print('shut down camera')
                 self.shutdown_event.set()
-                return 
+                return
 
         cam.queue_frame(frame)
 
@@ -83,11 +86,15 @@ while(True): # forever loop - planning to always running
     
     x = datetime.datetime.now()
     datestr = str(x.date())
-    start = str(x.time())
+    stream_begin = 8
+    stream_end = 17
     
     hr = get_hour()
     
-    if 8 < hr < 23: # between the hours of 8 and 23
+    if stream_begin < hr < stream_end: # between the hours of 8 and 23
+        
+        start = str(datetime.datetime.now().time())
+        
         with Vimba.get_instance() as vimba:
             cams = vimba.get_all_cameras()
 
@@ -100,7 +107,7 @@ while(True): # forever loop - planning to always running
 
                 single_frame = cam.get_frame().as_numpy_ndarray()
                 size = (single_frame.shape[0], single_frame.shape[1])
-                video_file_path = r'C:\Users\BMLab21\Documents\CrabStreams2\{}.avi'.format(datestr)
+                video_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
                 # Start Streaming, wait for five seconds, stop streaming
                 
                 setup_camera(cam)
@@ -116,14 +123,16 @@ while(True): # forever loop - planning to always running
                     # Start Streaming with a custom a buffer of 10 Frames (defaults to 5)
                     cam.start_streaming(handler=handler, buffer_count=10)
                     handler.shutdown_event.wait()
+                    end = str(datetime.datetime.now().time())
 
                 finally:
                     cam.stop_streaming()
+                    print('Streaming has stopped')
 
         result.release()
+        print('video released')
         cv2.destroyAllWindows()
         
-        end = str(datetime.datetime.now().time())
         
         # save accompanying Json
         
@@ -131,9 +140,14 @@ while(True): # forever loop - planning to always running
         metaData = {'date': datestr, 'start': start, 'end': end}
         pathlib.Path(json_file_path).write_text(json.dumps(metaData))
         
-        # compress and output to server
+        # compression
         
-        video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
-        json_server_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}_Meta.JSON'.format(datestr)
-        command = 'ffmpeg -i {} -b x265 {}'.format(video_ouput_to_server, json_server_file_path)
-        result = subprocess.run(command)
+        video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}_x264.avi'.format(datestr)
+        command = 'ffmpeg -i {} -c:v x264 -crf 26 {}'.format(video_file_path, video_ouput_to_server)
+        try:
+            result = subprocess.run(command)
+            print('video compressed')
+        except CompressionError:
+            print('compression failed')
+            
+        os.remove(video_file_path)
