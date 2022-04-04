@@ -22,19 +22,26 @@ while(True): # forever loop - planning to always running
     
     hr = get_hour()
     
-    if 8 < hr < 23: # between the hours of 8 and 23
+    if 8 < hr < 23: 
         
         # cv2 to create camera object
         
-        video = cv2.VideoCapture(0)
         cap = cv2.VideoCapture(0)
-        size = (int(video.get(3)), int(video.get(4)))
+
+        # set to 4K 4096 x 2160, 30fps
+        
+        cap.set(CV_CAP_PROP_FOURCC, CV_FOURCC('M','J','P','G')) # have to set codec before resolution
+        cap.set(CV_CAP_PROP_FRAME_WIDTH, 4096):
+        cap.set(CV_CAP_PROP_FRAME_HEIGHT, 2160);
+        fps = 30
+        
+        size = (int(cap.get(3)), int(cap.get(4)))
 
         video_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
         
         result = cv2.VideoWriter(video_file_path, 
                              cv2.VideoWriter_fourcc(*'MJPG'), # fourcc is how openCV find # MJPG is the codec
-                             30, size)
+                             fps, size)
         
         frame_n = 0 # frame counter 
         
@@ -66,7 +73,7 @@ while(True): # forever loop - planning to always running
         
         video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
         json_server_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}_Meta.JSON'.format(datestr)
-        command = 'ffmpeg -i {} -b x265 {}'.format(video_ouput_to_server, json_server_file_path)
+        command = 'ffmpeg -i {} -c:v libx264 -crf 26 {}'.format(video_file_path, video_ouput_to_server)
         result = subprocess.run(command)
         pathlib.Path(json_server_file_path).write_text(json.dumps(metaData))
         

@@ -143,7 +143,7 @@ while(True): # forever loop - planning to always running
         # compression
         
         video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}_x264.avi'.format(datestr)
-        command = 'ffmpeg -i {} -c:v x264 -crf 26 {}'.format(video_file_path, video_ouput_to_server)
+        command = 'ffmpeg -i {} -c:v libx264 -crf 26 {}'.format(video_file_path, video_ouput_to_server)
         try:
             result = subprocess.run(command)
             print('video compressed')
