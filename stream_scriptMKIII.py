@@ -14,26 +14,35 @@ def get_hour():
     hr = int(current.hour) # collects and integerizes the hour object
     return hr
 
+def in_time():
+    start = 8
+    end = 22
+    hr = get_hour():
+    return start < hr < end
+
 while(True): # forever loop - planning to always running 
     
     x = datetime.datetime.now()
     datestr = str(x.date())
     start = str(x.time())
     
-    hr = get_hour()
-    
-    if 8 < hr < 23: 
+    if in_time(): 
         
         # cv2 to create camera object
+        cameraNumber = 0
+        cap = cv2.VideoCapture()
+        cap.open(cameraNumber + cv2.CAP_DSHOW)
         
-        cap = cv2.VideoCapture(0)
-
+        # delay before setting up camera parameters
+        time.sleep(1)
+        
         # set to 4K 4096 x 2160, 30fps
         
-        cap.set(CV_CAP_PROP_FOURCC, CV_FOURCC('M','J','P','G')) # have to set codec before resolution
-        cap.set(CV_CAP_PROP_FRAME_WIDTH, 4096):
-        cap.set(CV_CAP_PROP_FRAME_HEIGHT, 2160);
         fps = 30
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # have to set codec before resolution
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        cap.set(cv2.CAP_PROP_FPS, fps)
         
         size = (int(cap.get(3)), int(cap.get(4)))
 
@@ -41,13 +50,12 @@ while(True): # forever loop - planning to always running
         
         result = cv2.VideoWriter(video_file_path, 
                              cv2.VideoWriter_fourcc(*'MJPG'), # fourcc is how openCV find # MJPG is the codec
-                             fps, size)
+                             24, size)
         
         frame_n = 0 # frame counter 
         
-        while(8 < hr < 23): # during the hours of 8-23 write a video to video_file_path
+        while(in_time()): # during the hours of 8-23 write a video to video_file_path
 
-            hr = get_hour()
             frame_n += 1
             ret, frame = cap.read()
             result.write(frame)
