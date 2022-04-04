@@ -16,9 +16,22 @@ def get_hour():
 
 def in_time():
     start = 8
-    end = 22
-    hr = get_hour():
+    end = 14
+    hr = get_hour()
     return start < hr < end
+
+framecount = 0
+prevMillis = 0
+
+def fpsCount():
+    global prevMillis
+    global framecount
+    millis = int(round(time.time() * 1000))
+    framecount += 1
+    if millis - prevMillis > 1000:
+        print(framecount)
+        prevMillis = millis 
+        framecount = 0
 
 while(True): # forever loop - planning to always running 
     
@@ -36,7 +49,7 @@ while(True): # forever loop - planning to always running
         # delay before setting up camera parameters
         time.sleep(1)
         
-        # set to 4K 4096 x 2160, 30fps
+        # set to 4K 4096 x 2160 (not currently possible), 30fps
         
         fps = 30
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # have to set codec before resolution
@@ -50,18 +63,20 @@ while(True): # forever loop - planning to always running
         
         result = cv2.VideoWriter(video_file_path, 
                              cv2.VideoWriter_fourcc(*'MJPG'), # fourcc is how openCV find # MJPG is the codec
-                             24, size)
+                             20, size) # 20 appears to be the max fps when using openCV
         
         frame_n = 0 # frame counter 
         
-        while(in_time()): # during the hours of 8-23 write a video to video_file_path
-
+        while(True): 
             frame_n += 1
             ret, frame = cap.read()
             result.write(frame)
             cv2.imshow('frame',frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+            if in_time()==False:
+                break
+            
         
         # stop writing and release after 23
         
@@ -81,7 +96,7 @@ while(True): # forever loop - planning to always running
         
         video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
         json_server_file_path = r'C:\Users\BMLab21\Documents\CrabStreams\{}_Meta.JSON'.format(datestr)
-        command = 'ffmpeg -i {} -c:v libx264 -crf 26 {}'.format(video_file_path, video_ouput_to_server)
+        command = 'ffmpeg -i {} -c:v libx265 -crf 29 {}'.format(video_file_path, video_ouput_to_server)
         result = subprocess.run(command)
         pathlib.Path(json_server_file_path).write_text(json.dumps(metaData))
         
