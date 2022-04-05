@@ -16,7 +16,7 @@ def get_hour():
 
 def in_time():
     start = 8
-    end = 14
+    end = 22
     hr = get_hour()
     return start < hr < end
 
@@ -84,6 +84,8 @@ while(True): # forever loop - planning to always running
         result.release()
         cv2.destroyAllWindows()
         
+        print('end recording')
+        
         end = str(datetime.datetime.now().time())
         
         # save accompanying Json
@@ -92,6 +94,8 @@ while(True): # forever loop - planning to always running
         metaData = {'date': datestr, 'start': start, 'end': end, 'frames': frame_n}
         pathlib.Path(json_file_path).write_text(json.dumps(metaData))
         
+        print('video outputted')
+        
         # compress and output to server
         
         video_ouput_to_server = r'C:\Users\BMLab21\Documents\CrabStreams\{}.avi'.format(datestr)
@@ -99,5 +103,7 @@ while(True): # forever loop - planning to always running
         command = 'ffmpeg -i {} -c:v libx265 -crf 29 {}'.format(video_file_path, video_ouput_to_server)
         result = subprocess.run(command)
         pathlib.Path(json_server_file_path).write_text(json.dumps(metaData))
+        
+        print('compression completed')
         
         # back to start
