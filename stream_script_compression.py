@@ -2,7 +2,7 @@ import subprocess
 import os
 
 suffix = '_264.avi'
-folder = r'C:\Users\BMLab21\Documents\CrabStreams
+folder = r'C:\Users\BMLab21\Documents\CrabStreams'
 contents = os.listdir(folder)
 for file_name in contents:
     if '.avi' in file_name and suffix not in file_name:
