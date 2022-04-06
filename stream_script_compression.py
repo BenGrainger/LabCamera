@@ -1,7 +1,7 @@
 import subprocess
 import os
 
-suffix = '_265.avi'
+suffix = '_264.avi'
 folder = r'C:\Users\BMLab21\Documents\CrabStreams
 contents = os.listdir(folder)
 for file_name in contents:
